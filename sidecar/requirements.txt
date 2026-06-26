@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+pydantic
+prometheux-chain==0.2.14

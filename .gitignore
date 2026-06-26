@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.env.local
+.env.*.local
+.next/
+node_modules/
+tsconfig.tsbuildinfo
+.venv/
+__pycache__/
+*.pyc
+data/images/*.png
+!data/images/.gitkeep

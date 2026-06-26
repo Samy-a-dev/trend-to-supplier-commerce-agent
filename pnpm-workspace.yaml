@@ -1,0 +1,16 @@
+packages:
+  - .
+
+allowBuilds:
+  '@google/genai': true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  sqlite3: true
+
+onlyBuiltDependencies:
+  - "@google/genai"
+  - esbuild
+  - protobufjs
+  - sharp
+  - sqlite3
