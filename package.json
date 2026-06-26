@@ -11,6 +11,7 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm build",
+    "env:check": "tsx scripts/check-env.ts",
     "db:migrate": "tsx lib/db/migrate.ts",
     "smoke": "tsx scripts/smoke/index.ts",
     "sidecar:dev": "uvicorn sidecar.main:app --reload --port 8000"

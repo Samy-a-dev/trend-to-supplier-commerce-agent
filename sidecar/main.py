@@ -21,6 +21,7 @@ app = FastAPI(title="Trend-to-Supplier Prometheux Sidecar")
 class DeriveRequest(BaseModel):
     program: str
     output_predicates: list[str] = Field(default_factory=list)
+    concept_name: str = "pipeline_rules"
     timeout_seconds: int = 60
 
 
@@ -63,12 +64,20 @@ def _derive_sync(request: DeriveRequest) -> dict[str, Any]:
 
     project_name = f"sidecar_run_{uuid.uuid4().hex[:12]}"
     project_id = px.save_project(project_name=project_name)
-    px.save_concept(project_id=project_id, definition=request.program)
+    px.save_concept(
+        project_id=project_id,
+        definition=request.program,
+        concept_name=request.concept_name,
+    )
+    px.run_concept(
+        project_id=project_id,
+        concept_name=request.concept_name,
+        persist_outputs=True,
+    )
 
     raw: dict[str, Any] = {}
     normalized: dict[str, list[dict[str, Any]]] = {}
     for predicate in request.output_predicates:
-        px.run_concept(project_id=project_id, concept_name=predicate)
         data = px.fetch_results(
             project_id=project_id,
             output_predicate=predicate,

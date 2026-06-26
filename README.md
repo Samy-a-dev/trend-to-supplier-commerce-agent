@@ -28,13 +28,19 @@ pnpm tsx scripts/get-token.ts
 pnpm db:migrate
 ```
 
-5. Verify live contracts:
+5. Check local environment readiness:
+
+```bash
+pnpm env:check
+```
+
+6. Verify live contracts:
 
 ```bash
 pnpm smoke
 ```
 
-6. Start the dashboard:
+7. Start the dashboard:
 
 ```bash
 pnpm dev

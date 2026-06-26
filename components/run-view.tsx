@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Mail, Play, RefreshCw } from "lucide-react";
+import { AlertCircle, Check, ExternalLink, Mail, Play, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -37,6 +37,8 @@ export function RunView({
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approving, setApproving] = useState<Record<string, boolean>>({});
+  const [approvalErrors, setApprovalErrors] = useState<Record<string, string>>({});
+  const [refreshing, setRefreshing] = useState(false);
   const started = useRef(false);
 
   const stepStatus = useMemo(() => {
@@ -59,7 +61,8 @@ export function RunView({
   async function startRun() {
     setRunning(true);
     setError(null);
-    setEvents((current) => (current.length ? current : []));
+    setEvents([]);
+    setReport(null);
 
     try {
       const response = await fetch("/api/runs/stream", {
@@ -107,6 +110,25 @@ export function RunView({
     }
   }
 
+  async function refreshRun() {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/runs/${runId}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(await response.text());
+      const payload = (await response.json()) as {
+        events: ClientEvent[];
+        report: SourcingReport | null;
+      };
+      setEvents(payload.events);
+      setReport(payload.report);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   useEffect(() => {
     if (!autostart || started.current) return;
     started.current = true;
@@ -123,10 +145,16 @@ export function RunView({
               Run {runId} · {region}
             </p>
           </div>
-          <button className="button" disabled={running || !vertical} onClick={startRun} type="button">
-            {running ? <RefreshCw size={16} /> : <Play size={16} />}
-            {running ? "Running" : "Run again"}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button className="button secondary" disabled={refreshing} onClick={refreshRun} type="button">
+              <RefreshCw size={16} />
+              {refreshing ? "Refreshing" : "Refresh"}
+            </button>
+            <button className="button" disabled={running || !vertical} onClick={startRun} type="button">
+              {running ? <RefreshCw size={16} /> : <Play size={16} />}
+              {running ? "Running" : "Run again"}
+            </button>
+          </div>
         </div>
         {error ? (
           <p className="fine" style={{ color: "var(--danger)", marginBottom: 0 }}>
@@ -170,9 +198,11 @@ export function RunView({
         </div>
 
         <ReportPanel
+          approvalErrors={approvalErrors}
           approving={approving}
           onApprove={async (emailId) => {
             setApproving((current) => ({ ...current, [emailId]: true }));
+            setApprovalErrors((current) => ({ ...current, [emailId]: "" }));
             try {
               const response = await fetch("/api/outreach/approve", {
                 method: "POST",
@@ -192,6 +222,11 @@ export function RunView({
                     }
                   : current
               );
+            } catch (caught) {
+              setApprovalErrors((current) => ({
+                ...current,
+                [emailId]: caught instanceof Error ? caught.message : String(caught)
+              }));
             } finally {
               setApproving((current) => ({ ...current, [emailId]: false }));
             }
@@ -209,10 +244,12 @@ function latestMessage(events: ClientEvent[], step: PipelineStepName) {
 }
 
 function ReportPanel({
+  approvalErrors,
   approving,
   onApprove,
   report
 }: {
+  approvalErrors: Record<string, string>;
   approving: Record<string, boolean>;
   onApprove: (emailId: string) => Promise<void>;
   report: SourcingReport | null;
@@ -238,16 +275,37 @@ function ReportPanel({
             <h4>{report.opportunity.productName}</h4>
             <p>{report.opportunity.rationale}</p>
           </div>
+          <div className="data-item">
+            <h4>Target customer</h4>
+            <p>{report.opportunity.targetCustomer}</p>
+          </div>
           {report.scores ? (
             <div className="data-item">
               <h4>Scores</h4>
-              <p>
-                Trend {pct(report.scores.scores.trendStrength)} · Pain{" "}
-                {pct(report.scores.scores.painIntensity)} · Differentiation{" "}
-                {pct(report.scores.scores.differentiation)} · Risk {pct(report.scores.scores.risk)}
-              </p>
+              <div className="score-grid">
+                <Metric label="Trend" value={pct(report.scores.scores.trendStrength)} />
+                <Metric label="Demand" value={pct(report.scores.scores.demandQuality)} />
+                <Metric label="Pain" value={pct(report.scores.scores.painIntensity)} />
+                <Metric label="Diff." value={pct(report.scores.scores.differentiation)} />
+                <Metric label="Margin" value={pct(report.scores.scores.margin)} />
+                <Metric label="Risk" value={pct(report.scores.scores.risk)} />
+              </div>
             </div>
           ) : null}
+        </div>
+      </div>
+
+      <div className="panel">
+        <h2>Customer pains</h2>
+        <div className="data-list">
+          {report.opportunity.reviewThemes.map((theme) => (
+            <div className="data-item" key={theme.theme}>
+              <h4>
+                {theme.theme} <span className="fine">· severity {pct(theme.severity)}</span>
+              </h4>
+              <p>{theme.quotes.slice(0, 2).join(" ") || `${theme.evidenceCount} supporting item(s)`}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -262,27 +320,116 @@ function ReportPanel({
         </div>
       ) : null}
 
+      {report.variant ? (
+        <div className="panel">
+          <h2>Variant spec</h2>
+          <div className="data-list">
+            <div className="data-item">
+              <h4>{report.variant.productName}</h4>
+              <p>{report.variant.positioning}</p>
+            </div>
+            <div className="data-item">
+              <h4>Differentiators</h4>
+              <p>{report.variant.differentiators.join(" · ")}</p>
+            </div>
+            <div className="data-item">
+              <h4>Packaging</h4>
+              <p>{report.variant.packagingNotes}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="panel">
+        <h2>Suppliers</h2>
+        <div className="data-list">
+          {report.suppliers.length === 0 ? (
+            <div className="data-item">
+              <h4>No suppliers extracted</h4>
+              <p>Check the suppliers step event and Tavily extract results.</p>
+            </div>
+          ) : (
+            report.suppliers.map((supplier) => (
+              <div className="data-item" key={supplier.url}>
+                <h4>
+                  <a href={supplier.url} rel="noreferrer" target="_blank">
+                    {supplier.name} <ExternalLink size={13} style={{ verticalAlign: "-2px" }} />
+                  </a>
+                </h4>
+                <p>
+                  Fit {pct(supplier.fitScore)}
+                  {supplier.country ? ` · ${supplier.country}` : ""}
+                  {supplier.moq ? ` · MOQ ${supplier.moq}` : ""}
+                  {supplier.leadTime ? ` · ${supplier.leadTime}` : ""}
+                </p>
+                <p style={{ marginTop: 6 }}>{supplier.capabilities.join(" · ")}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       <div className="panel">
         <h2>Supplier RFQs</h2>
         <div className="data-list">
-          {report.emails.map((email) => (
-            <div className="data-item" key={`${email.supplierName}-${email.subject}`}>
-              <h4>{email.supplierName}</h4>
-              <p>{email.subject}</p>
-              <button
-                className="button secondary"
-                disabled={!email.emailId || email.status === "drafted_in_gmail" || approving[email.emailId]}
-                onClick={() => {
-                  if (email.emailId) void onApprove(email.emailId);
-                }}
-                style={{ marginTop: 10 }}
-                type="button"
-              >
-                <Mail size={15} />
-                {email.status === "drafted_in_gmail" ? "Drafted in Gmail" : "Approve draft"}
-              </button>
+          {report.emails.length === 0 ? (
+            <div className="data-item">
+              <h4>No RFQs drafted</h4>
+              <p>Supplier discovery needs at least one candidate before RFQs can be generated.</p>
             </div>
-          ))}
+          ) : (
+            report.emails.map((email) => (
+              <div className="data-item" key={`${email.supplierName}-${email.subject}`}>
+                <h4>{email.supplierName}</h4>
+                <p>{email.subject}</p>
+                <pre className="email-preview">{email.body}</pre>
+                {email.emailId && approvalErrors[email.emailId] ? (
+                  <p className="fine" style={{ color: "var(--danger)" }}>
+                    <AlertCircle size={13} style={{ verticalAlign: "-2px" }} />{" "}
+                    {approvalErrors[email.emailId]}
+                  </p>
+                ) : null}
+                <button
+                  className="button secondary"
+                  disabled={!email.emailId || email.status === "drafted_in_gmail" || approving[email.emailId]}
+                  onClick={() => {
+                    if (email.emailId) void onApprove(email.emailId);
+                  }}
+                  style={{ marginTop: 10 }}
+                  type="button"
+                >
+                  <Mail size={15} />
+                  {email.status === "drafted_in_gmail" ? "Drafted in Gmail" : "Approve draft"}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="panel">
+        <h2>Evidence</h2>
+        <div className="data-list">
+          {report.evidence.length === 0 ? (
+            <div className="data-item">
+              <h4>No evidence persisted</h4>
+              <p>The corroborate step did not return source results.</p>
+            </div>
+          ) : (
+            report.evidence.map((entry) => (
+              <div className="data-item" key={entry.query}>
+                <h4>{entry.query}</h4>
+                <p>{entry.answer ?? `${entry.results.length} result(s)`}</p>
+                <div className="source-list">
+                  {entry.results.slice(0, 4).map((result) => (
+                    <a href={result.url} key={result.url} rel="noreferrer" target="_blank">
+                      {result.title ?? result.url}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -293,6 +440,15 @@ function ReportPanel({
         </p>
       </div>
     </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 

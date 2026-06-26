@@ -3,8 +3,10 @@ import Link from "next/link";
 
 import { RunLauncher } from "@/components/run-launcher";
 import { listRecentRuns } from "@/lib/adapters/clickhouse";
+import { getIntegrationReadiness } from "@/lib/integrations";
 
 export default async function HomePage() {
+  const readiness = getIntegrationReadiness();
   const runsResult = await listRecentRuns().catch((error: unknown) => ({
     error: error instanceof Error ? error.message : String(error),
     rows: []
@@ -25,6 +27,27 @@ export default async function HomePage() {
       </section>
 
       <section className="stack">
+        <div>
+          <h2 className="section-title">Integration readiness</h2>
+          <div className="run-list">
+            {readiness.map((integration) => (
+              <div className="card run-row" key={integration.name}>
+                <span>
+                  <strong>{integration.name}</strong>
+                  <span className="fine">
+                    {integration.ready
+                      ? integration.purpose
+                      : `Missing ${integration.missing.join(", ")}`}
+                  </span>
+                </span>
+                <span className={`badge ${integration.ready ? "completed" : "failed"}`}>
+                  {integration.ready ? "ready" : "missing"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div>
           <h2 className="section-title">Recent runs</h2>
           {dbError ? (

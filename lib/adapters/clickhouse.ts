@@ -49,6 +49,7 @@ export async function createAgentRun(input: {
   runId: string;
   vertical: string;
   region: string;
+  startedAt?: string;
 }) {
   await insertJSON("agent_runs", [
     {
@@ -56,7 +57,9 @@ export async function createAgentRun(input: {
       vertical: input.vertical,
       region: input.region,
       status: "running",
+      started_at: input.startedAt ?? new Date().toISOString(),
       completed_at: null,
+      updated_at: new Date().toISOString(),
       summary: "",
       payload: ""
     }
@@ -65,26 +68,26 @@ export async function createAgentRun(input: {
 
 export async function finishAgentRun(input: {
   runId: string;
+  vertical: string;
+  region: string;
+  startedAt?: string;
   status: "completed" | "failed";
   summary: string;
   payload?: unknown;
 }) {
-  await getClickHouseClient().command({
-    query: `
-      ALTER TABLE agent_runs
-      UPDATE status = {status:String},
-        completed_at = now64(3),
-        summary = {summary:String},
-        payload = {payload:String}
-      WHERE run_id = {runId:String}
-    `,
-    query_params: {
-      runId: input.runId,
+  await insertJSON("agent_runs", [
+    {
+      run_id: input.runId,
+      vertical: input.vertical,
+      region: input.region,
       status: input.status,
+      started_at: input.startedAt ?? new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       summary: input.summary,
       payload: safeJson(input.payload ?? {})
     }
-  });
+  ]);
 }
 
 export async function persistRunEvent(row: RunEventRow) {
@@ -104,16 +107,16 @@ export async function listRecentRuns(limit = 20) {
     `
       SELECT
         run_id,
-        anyLast(vertical) AS vertical,
-        anyLast(region) AS region,
-        anyLast(status) AS status,
+        argMax(vertical, updated_at) AS vertical,
+        argMax(region, updated_at) AS region,
+        argMax(status, updated_at) AS status,
         toString(max(started_at)) AS started_at,
         toString(max(completed_at)) AS completed_at,
-        anyLast(summary) AS summary,
-        anyLast(payload) AS payload
+        argMax(summary, updated_at) AS summary,
+        argMax(payload, updated_at) AS payload
       FROM agent_runs
       GROUP BY run_id
-      ORDER BY max(started_at) DESC
+      ORDER BY max(updated_at) DESC
       LIMIT {limit:UInt32}
     `,
     { limit }
@@ -154,7 +157,7 @@ export async function getRunReport(runId: string) {
       SELECT payload
       FROM agent_runs
       WHERE run_id = {runId:String} AND payload != ''
-      ORDER BY started_at DESC
+      ORDER BY updated_at DESC
       LIMIT 1
     `,
     { runId }

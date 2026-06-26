@@ -157,6 +157,7 @@ export type RfqEmail = z.infer<typeof RfqEmailSchema>;
 export const ReportSchema = z.object({
   summary: z.string(),
   opportunity: OpportunitySchema,
+  evidence: z.array(EvidenceSchema).default([]),
   scores: ScoreResultSchema.optional(),
   variant: VariantSchema.optional(),
   suppliers: z.array(SupplierSchema),

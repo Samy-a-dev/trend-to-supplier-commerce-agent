@@ -13,6 +13,11 @@ export async function migrate() {
   for (const statement of statements) {
     await client.command({ query: statement });
   }
+
+  await client.command({
+    query:
+      "ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS updated_at DateTime64(3, 'UTC') DEFAULT now64(3)"
+  });
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

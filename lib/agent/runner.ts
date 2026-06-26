@@ -15,6 +15,7 @@ import { parseJson, safeJson, serializeError } from "@/lib/utils";
 export async function* streamPipelineRun(input: unknown): AsyncGenerator<RunEventRow, void, void> {
   const request = RunRequestSchema.parse(input);
   const runId = request.runId ?? crypto.randomUUID();
+  const startedAt = new Date().toISOString();
   const initialState: PipelineState = {
     runId,
     vertical: request.vertical,
@@ -24,7 +25,12 @@ export async function* streamPipelineRun(input: unknown): AsyncGenerator<RunEven
 
   try {
     await migrate();
-    await createAgentRun({ runId, vertical: request.vertical, region: request.region });
+    await createAgentRun({
+      runId,
+      vertical: request.vertical,
+      region: request.region,
+      startedAt
+    });
 
     const sessionService = new InMemorySessionService();
     const appName = "trend_to_supplier";
@@ -61,6 +67,9 @@ export async function* streamPipelineRun(input: unknown): AsyncGenerator<RunEven
     const report = state.report;
     await finishAgentRun({
       runId,
+      vertical: request.vertical,
+      region: request.region,
+      startedAt,
       status: "completed",
       summary:
         typeof report === "object" && report && "summary" in report
@@ -79,6 +88,9 @@ export async function* streamPipelineRun(input: unknown): AsyncGenerator<RunEven
     await persistRunEvent(row).catch(() => undefined);
     await finishAgentRun({
       runId,
+      vertical: request.vertical,
+      region: request.region,
+      startedAt,
       status: "failed",
       summary: row.message,
       payload: { state, error: row.data }

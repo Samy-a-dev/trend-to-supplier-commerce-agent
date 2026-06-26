@@ -21,6 +21,7 @@ export class ReportStep extends PipelineStep {
     const report = ReportSchema.parse({
       summary: `${state.opportunity.productName} is the strongest discovered opportunity in ${state.vertical}, backed by ${state.evidence?.reduce((sum, entry) => sum + entry.results.length, 0) ?? 0} corroborating web result(s).`,
       opportunity: state.opportunity,
+      evidence: state.evidence ?? [],
       scores: state.scores,
       variant: state.variant,
       suppliers: state.suppliers ?? [],

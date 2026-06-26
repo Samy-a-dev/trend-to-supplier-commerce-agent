@@ -148,11 +148,12 @@ CREATE TABLE IF NOT EXISTS agent_runs
   status LowCardinality(String),
   started_at DateTime64(3, 'UTC') DEFAULT now64(3),
   completed_at Nullable(DateTime64(3, 'UTC')),
+  updated_at DateTime64(3, 'UTC') DEFAULT now64(3),
   summary String DEFAULT '',
   payload String DEFAULT ''
 )
-ENGINE = MergeTree
-ORDER BY (run_id, started_at);
+ENGINE = ReplacingMergeTree(updated_at)
+ORDER BY run_id;
 
 CREATE TABLE IF NOT EXISTS run_events
 (

@@ -351,6 +351,58 @@ textarea {
   line-height: 1.45;
 }
 
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metric {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.metric span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.metric strong {
+  font-size: 16px;
+}
+
+.email-preview {
+  overflow: auto;
+  max-height: 220px;
+  margin: 10px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink);
+  padding: 10px;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.source-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.source-list a {
+  overflow: hidden;
+  color: var(--accent-2);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .image-strip {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -377,5 +429,9 @@ textarea {
 
   .console-line {
     grid-template-columns: 72px 96px 1fr;
+  }
+
+  .score-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
