@@ -36,7 +36,13 @@ export class ReportStep extends PipelineStep {
     return {
       stateDelta: { report },
       message: `Report assembled for ${state.opportunity.productName}`,
-      data: { report }
+      data: {
+        productName: report.opportunity.productName,
+        evidenceCount: report.evidence.reduce((sum, entry) => sum + entry.results.length, 0),
+        supplierCount: report.suppliers.length,
+        emailCount: report.emails.length,
+        riskCount: report.risks.length
+      }
     };
   }
 }

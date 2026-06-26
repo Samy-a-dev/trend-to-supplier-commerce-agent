@@ -22,6 +22,7 @@ class DeriveRequest(BaseModel):
     program: str
     output_predicates: list[str] = Field(default_factory=list)
     concept_name: str = "pipeline_rules"
+    compute: str | None = None
     timeout_seconds: int = 60
 
 
@@ -60,7 +61,11 @@ def _derive_sync(request: DeriveRequest) -> dict[str, Any]:
     org = _required_env("PMTX_ORG")
     user = _required_env("PMTX_USER")
     os.environ["PMTX_TOKEN"] = token
-    px.config.set("JARVISPY_URL", f"https://platform.prometheux.ai/jarvispy/{org}/{user}")
+    px.config.set(
+        "JARVISPY_URL",
+        os.getenv("JARVISPY_URL") or f"https://api.prometheux.ai/jarvispy/{org}/{user}",
+    )
+    compute = request.compute or os.getenv("PMTX_COMPUTE") or None
 
     project_name = f"sidecar_run_{uuid.uuid4().hex[:12]}"
     project_id = px.save_project(project_name=project_name)
@@ -68,16 +73,18 @@ def _derive_sync(request: DeriveRequest) -> dict[str, Any]:
         project_id=project_id,
         definition=request.program,
         concept_name=request.concept_name,
-    )
-    px.run_concept(
-        project_id=project_id,
-        concept_name=request.concept_name,
-        persist_outputs=True,
+        compute=compute,
     )
 
     raw: dict[str, Any] = {}
     normalized: dict[str, list[dict[str, Any]]] = {}
     for predicate in request.output_predicates:
+        px.run_concept(
+            project_id=project_id,
+            concept_name=predicate,
+            persist_outputs=True,
+            compute=compute,
+        )
         data = px.fetch_results(
             project_id=project_id,
             output_predicate=predicate,
@@ -108,6 +115,12 @@ def _normalize_rows(data: Any) -> list[dict[str, Any]]:
         return [_row_to_dict(item) for item in data]
 
     if isinstance(data, dict):
+        nested_results = data.get("results")
+        if isinstance(nested_results, dict):
+            facts = nested_results.get("facts")
+            columns = nested_results.get("columnNames") or nested_results.get("column_names")
+            if isinstance(facts, list):
+                return [_row_to_dict(item, columns if isinstance(columns, list) else None) for item in facts]
         for key in ("rows", "results", "items", "data"):
             value = data.get(key)
             if isinstance(value, list):

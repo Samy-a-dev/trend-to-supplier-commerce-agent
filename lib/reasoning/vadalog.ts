@@ -50,15 +50,11 @@ export function buildVadalogProgram(input: {
   lines.push("risingTrend(T) :- trend(T, G, P), G > 0.7, P >= 3.");
   lines.push("strongPainPoint(T, Pa) :- painPoint(T, Pa, S), S >= 0.6.");
   lines.push("differentiationOpportunity(T, Pa) :- strongPainPoint(T, Pa), not competitor(T, Pa).");
-  lines.push("supplierFit(S) :- supplier(S, Rel, Lead), Rel >= 4.0, Lead =< 14.");
+  lines.push("supplierFit(S) :- supplier(S, Rel, Lead), Rel >= 4.0, Lead <= 14.");
   lines.push("stockCandidate(T) :- risingTrend(T), differentiationOpportunity(T, _), supplierFit(_).");
-  lines.push('trendScore(T, S) :- trend(T, S, _).');
-  lines.push('painScore(T, M) :- msum((S), painPoint(T, _, S), M).');
   lines.push('@output("stockCandidate").');
   lines.push('@output("differentiationOpportunity").');
   lines.push('@output("supplierFit").');
-  lines.push('@output("trendScore").');
-  lines.push('@output("painScore").');
 
   return lines.join("\n");
 }

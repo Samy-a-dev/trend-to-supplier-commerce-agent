@@ -8,7 +8,7 @@ export async function smokePrometheux() {
     'supplier("oem_a", 4.5, 12).',
     "risingTrend(T) :- trend(T, G, P), G > 0.7, P >= 3.",
     "strongPainPoint(T, Pa) :- painPoint(T, Pa, S), S >= 0.6.",
-    "supplierFit(S) :- supplier(S, Rel, Lead), Rel >= 4.0, Lead =< 14.",
+    "supplierFit(S) :- supplier(S, Rel, Lead), Rel >= 4.0, Lead <= 14.",
     '@output("risingTrend").',
     '@output("strongPainPoint").',
     '@output("supplierFit").'

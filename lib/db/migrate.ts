@@ -18,6 +18,13 @@ export async function migrate() {
     query:
       "ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS updated_at DateTime64(3, 'UTC') DEFAULT now64(3)"
   });
+  await client.command({
+    query:
+      "ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS completed_at Nullable(DateTime64(3, 'UTC'))"
+  });
+  await client.command({
+    query: "ALTER TABLE agent_runs ADD COLUMN IF NOT EXISTS summary String DEFAULT ''"
+  });
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

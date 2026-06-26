@@ -21,13 +21,7 @@ export class ScoreStep extends PipelineStep {
     });
     const derived = await deriveWithPrometheux({
       program,
-      outputPredicates: [
-        "stockCandidate",
-        "differentiationOpportunity",
-        "supplierFit",
-        "trendScore",
-        "painScore"
-      ]
+      outputPredicates: ["stockCandidate", "differentiationOpportunity", "supplierFit"]
     });
 
     const scores: ScoreResult = {

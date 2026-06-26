@@ -1,3 +1,5 @@
+import "./env";
+
 export type IntegrationName =
   | "Apify"
   | "Tavily"
@@ -45,13 +47,13 @@ export const integrationRequirements: IntegrationRequirement[] = [
     name: "Prometheux",
     purpose: "Vadalog derivation through the local sidecar",
     env: ["PMTX_TOKEN", "PMTX_ORG", "PMTX_USER"],
-    optionalEnv: ["SIDECAR_URL"]
+    optionalEnv: ["JARVISPY_URL", "PMTX_COMPUTE", "SIDECAR_URL"]
   },
   {
     name: "Gmail",
     purpose: "Operator-approved Gmail draft creation",
     env: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN"],
-    optionalEnv: ["SMOKE_GMAIL_TO"]
+    optionalEnv: ["SMOKE_GMAIL_TO", "SMOKE_EMAIL_TO"]
   }
 ];
 
