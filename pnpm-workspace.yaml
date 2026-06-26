@@ -8,9 +8,35 @@ allowBuilds:
   sharp: true
   sqlite3: true
 
+minimumReleaseAgeExclude:
+  - tar@7.5.7
+  - tar@7.5.3
+  - tar@7.5.8
+  - tar@7.5.10
+  - tar@7.5.11
+  - tar@7.5.4
+  - postcss@8.5.10
+  - '@tootallnate/once@2.0.1'
+  - uuid@11.1.1
+  - tar@7.5.16
+  - '@opentelemetry/core@2.8.0'
+
 onlyBuiltDependencies:
   - "@google/genai"
   - esbuild
   - protobufjs
   - sharp
   - sqlite3
+
+overrides:
+  '@opentelemetry/core@<2.8.0': ^2.8.0
+  '@tootallnate/once@<2.0.1': ^2.0.1
+  postcss@<8.5.10: ^8.5.10
+  tar@<7.5.7: ^7.5.7
+  tar@<7.5.8: ^7.5.8
+  tar@<=7.5.10: ^7.5.11
+  tar@<=7.5.15: ^7.5.16
+  tar@<=7.5.2: ^7.5.3
+  tar@<=7.5.3: ^7.5.4
+  tar@<=7.5.9: ^7.5.10
+  uuid@<11.1.1: ^11.1.1
