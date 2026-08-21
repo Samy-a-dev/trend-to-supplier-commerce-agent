@@ -1,4 +1,4 @@
 fastapi
 uvicorn
 pydantic
-prometheux-chain==0.2.14
+prometheux-chain==0.3.2
